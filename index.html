@@ -80,7 +80,6 @@
       "0x101A023270368c0D50BFfb62780F4aFd4ea79C35",
       "0xB7b31a6BC18e48888545CE79e83E06003bE70930",
       "0x2C89bbc92BD86F8075d1DEcc58C7F4E0107f286b",
-      // ... truncated for brevity ...
       "0xdc3326e71d45186f113a2f448984ca0e8d201995",
       "0x6985884C4392D348587B19cb9eAAf157F13271cd"
     ];
@@ -98,7 +97,6 @@
       waultswap: { name: "WaultSwap", address: "0x3a1D87f206D12415f5b0A33E786967680AAb4f6d" }
     };
 
-    // Placeholder for wallet connection and trading logic
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -107,7 +105,17 @@
           const signer = provider.getSigner();
           const address = await signer.getAddress();
           document.getElementById("wallet").textContent = address;
-          // Fetch and display USDC balance logic here...
+
+          const usdcContract = new ethers.Contract(
+            "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // USDC on Polygon
+            ["function balanceOf(address owner) view returns (uint256)", "function decimals() view returns (uint8)"],
+            provider
+          );
+
+          const rawBalance = await usdcContract.balanceOf(address);
+          const decimals = await usdcContract.decimals();
+          const formatted = ethers.utils.formatUnits(rawBalance, decimals);
+          document.getElementById("balance").textContent = parseFloat(formatted).toFixed(2);
         } catch (err) {
           console.error("Connection error:", err);
         }
