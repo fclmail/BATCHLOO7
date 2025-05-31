@@ -74,6 +74,13 @@
     </table>
   </div>
 
+  <div class="sheet">
+    <h4>Combinations Scanned</h4>
+    <table id="comboTable">
+      <tr><th>Token</th><th>Buy DEX</th><th>Sell DEX</th><th>Estimated Profit</th></tr>
+    </table>
+  </div>
+
   <script>
     const TOKENS = [
       "0xD6DF932A45C0f255f85145f286eA0b292B21C90B",
@@ -97,6 +104,8 @@
       waultswap: { name: "WaultSwap", address: "0x3a1D87f206D12415f5b0A33E786967680AAb4f6d" }
     };
 
+    let trading = false;
+
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -107,17 +116,16 @@
           document.getElementById("wallet").textContent = address;
 
           const usdcContract = new ethers.Contract(
-            "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // USDC on Polygon
-            ["function balanceOf(address owner) view returns (uint256)", "function decimals() view returns (uint8)"],
+            "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+            ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"],
             provider
           );
-
-          const rawBalance = await usdcContract.balanceOf(address);
-          const decimals = await usdcContract.decimals();
-          const formatted = ethers.utils.formatUnits(rawBalance, decimals);
-          document.getElementById("balance").textContent = parseFloat(formatted).toFixed(2);
+          const raw = await usdcContract.balanceOf(address);
+          const dec = await usdcContract.decimals();
+          const bal = ethers.utils.formatUnits(raw, dec);
+          document.getElementById("balance").textContent = parseFloat(bal).toFixed(2);
         } catch (err) {
-          console.error("Connection error:", err);
+          console.error("Wallet connection failed:", err);
         }
       } else {
         alert("Please install MetaMask!");
@@ -127,13 +135,41 @@
     function startTrading() {
       document.getElementById("startBtn").disabled = true;
       document.getElementById("stopBtn").disabled = false;
-      // Trading loop logic here...
+      trading = true;
+      scanLoop();
     }
 
     function stopTrading() {
       document.getElementById("startBtn").disabled = false;
       document.getElementById("stopBtn").disabled = true;
-      // Stop trading logic here...
+      trading = false;
+    }
+
+    async function scanLoop() {
+      const amountIn = document.getElementById("amountIn").value;
+      const onlyIfProfitable = document.getElementById("onlyIfProfitable").checked;
+      const table = document.getElementById("comboTable");
+
+      while (trading) {
+        table.innerHTML = '<tr><th>Token</th><th>Buy DEX</th><th>Sell DEX</th><th>Estimated Profit</th></tr>';
+
+        for (let token of TOKENS) {
+          for (let buyKey in ROUTERS) {
+            for (let sellKey in ROUTERS) {
+              if (buyKey === sellKey) continue;
+
+              // Simulated profit value for example
+              const profit = (Math.random() * 2 - 1).toFixed(4); // Range -1.0 to +1.0
+              const row = document.createElement("tr");
+              if (parseFloat(profit) > 0) row.classList.add("profitable");
+              row.innerHTML = `<td>${token.slice(0,6)}...</td><td>${ROUTERS[buyKey].name}</td><td>${ROUTERS[sellKey].name}</td><td>${profit}</td>`;
+              table.appendChild(row);
+            }
+          }
+        }
+
+        await new Promise(r => setTimeout(r, 10000));
+      }
     }
   </script>
 </body>
